@@ -1,0 +1,76 @@
+image: node:latest
+
+#before_script:
+#  - 'which ssh-agent || ( apt-get update -y && apt-get install openssh-client -y )'
+#  - npm install
+
+# lint and test are two different jobs in the same stage.
+# This allows us to run these two in parallel and making build faster
+
+#deploy:dev:
+#  stage: deploy
+#  script:
+#    - bash deploy/devDeploy.sh
+#  only:
+#    - development
+
+
+stages:
+  - deploy
+
+deploy:dev:
+  stage: deploy
+  script:
+    - export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+    - export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+    - apt-get update && apt-get install -qyf python-dev
+    - curl -O https://bootstrap.pypa.io/pip/2.7/get-pip.py
+    - python get-pip.py
+    - pip install awscli
+    - npm install -g @angular/cli@8
+    - npm install
+    - export NODE_OPTIONS=--openssl-legacy-provider
+    - ng build --configuration=dev
+    - aws s3 sync --delete ./dist/browser/ s3://onlyborrow-web-uk-dev/
+    - aws cloudfront create-invalidation --distribution-id E1X7979CI6NSLD --path /index.html
+
+  only:
+    - development
+
+deploy:testing:
+  stage: deploy
+  script:
+    - export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+    - export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+    - apt-get update && apt-get install -qyf python-dev
+    - curl -O https://bootstrap.pypa.io/pip/2.7/get-pip.py
+    - python get-pip.py
+    - pip install awscli
+    - npm install -g @angular/cli@8
+    - npm install
+    - export NODE_OPTIONS=--openssl-legacy-provider
+    - ng build --configuration=testing
+    - aws s3 sync --delete ./dist/browser/ s3://onlyborrow-web-uk-testing/
+    - aws cloudfront create-invalidation --distribution-id EE49XXMNQ75TJ --path /index.html
+
+  only:
+    - testing
+
+deploy:production:
+  stage: deploy
+  script:
+    - export AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+    - export AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+    - apt-get update && apt-get install -qyf python-dev
+    - curl -O https://bootstrap.pypa.io/pip/2.7/get-pip.py
+    - python get-pip.py
+    - pip install awscli
+    - npm install -g @angular/cli@8
+    - npm install
+    - export NODE_OPTIONS=--openssl-legacy-provider
+    - ng build --configuration=production
+    - aws s3 sync --delete ./dist/browser/ s3://onlyborrow-web-uk-prod/
+    - aws cloudfront create-invalidation --distribution-id E7L0EM7JYONPB --path /index.html
+
+  only:
+    - master
